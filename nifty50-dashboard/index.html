@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indian Stock Market Dashboard — Large, Mid & Small Cap Analysis</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Indian Stock Market Dashboard</h1>
+        <div class="header-info">
+            <span id="last-updated">Last Updated: --</span>
+            <button id="refresh-btn" onclick="refreshData()">Refresh</button>
+        </div>
+    </header>
+
+    <!-- Market Segment Tabs -->
+    <div class="segment-tabs">
+        <button class="segment-tab active" data-segment="largecap" onclick="switchSegment('largecap')">Large Cap</button>
+        <button class="segment-tab" data-segment="midcap" onclick="switchSegment('midcap')">Mid Cap</button>
+        <button class="segment-tab" data-segment="smallcap" onclick="switchSegment('smallcap')">Small Cap</button>
+    </div>
+    <div class="segment-desc" id="segment-desc">Nifty 100 — Top 100 by Market Cap</div>
+
+    <div class="summary-bar">
+        <div class="summary-card buy">
+            <span class="count" id="buy-count">0</span>
+            <span class="label">BUY</span>
+        </div>
+        <div class="summary-card hold">
+            <span class="count" id="hold-count">0</span>
+            <span class="label">HOLD</span>
+        </div>
+        <div class="summary-card sell">
+            <span class="count" id="sell-count">0</span>
+            <span class="label">SELL</span>
+        </div>
+        <div class="summary-card nifty-index">
+            <span class="count" id="index-value">--</span>
+            <span class="label" id="index-label">NIFTY 50</span>
+        </div>
+    </div>
+
+    <!-- Sub-view tabs: Stock View / Sector View -->
+    <div class="view-tabs">
+        <button class="view-tab active" data-view="stocks" onclick="switchView('stocks')">Stock View</button>
+        <button class="view-tab" data-view="sector" onclick="switchView('sector')">Sector View</button>
+    </div>
+
+    <!-- STOCK VIEW -->
+    <div id="stock-view">
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all" onclick="filterStocks('all')">All</button>
+            <button class="filter-btn" data-filter="buy" onclick="filterStocks('buy')">Buy</button>
+            <button class="filter-btn" data-filter="hold" onclick="filterStocks('hold')">Hold</button>
+            <button class="filter-btn" data-filter="sell" onclick="filterStocks('sell')">Sell</button>
+        </div>
+
+        <div class="criteria-legend">
+            <h3>Recommendation Criteria</h3>
+            <div class="criteria-items">
+                <div class="criteria-item"><strong>P/E Ratio:</strong> &lt;20 (Buy) | 20-35 (Hold) | &gt;35 (Sell)</div>
+                <div class="criteria-item"><strong>P/E vs Sector:</strong> &gt;20% below (Buy) | Below (Hold) | &gt;30% above (Sell)</div>
+                <div class="criteria-item"><strong>P/B Ratio:</strong> &lt;3 (Buy) | 3-5 (Hold) | &gt;5 (Sell)</div>
+                <div class="criteria-item"><strong>ROE:</strong> &gt;18% (Buy) | 10-18% (Hold) | &lt;10% (Sell)</div>
+                <div class="criteria-item"><strong>Debt/Equity:</strong> &lt;0.5 (Buy) | 0.5-1.5 (Hold) | &gt;1.5 (Sell)</div>
+                <div class="criteria-item"><strong>Dividend Yield:</strong> &gt;2% (Buy) | 1-2% (Hold) | &lt;1% (Sell)</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="stock-table">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('symbol')">Symbol</th>
+                        <th onclick="sortTable('name')">Company</th>
+                        <th onclick="sortTable('sector')">Sector</th>
+                        <th onclick="sortTable('price')">Price (&#8377;)</th>
+                        <th onclick="sortTable('change')">Change %</th>
+                        <th onclick="sortTable('pe')">P/E</th>
+                        <th onclick="sortTable('sectorPe')">Sector P/E</th>
+                        <th onclick="sortTable('peVsSector')">vs Sector</th>
+                        <th onclick="sortTable('pb')">P/B</th>
+                        <th onclick="sortTable('roe')">ROE %</th>
+                        <th onclick="sortTable('de')">D/E</th>
+                        <th onclick="sortTable('divYield')">Div %</th>
+                        <th onclick="sortTable('score')">Score</th>
+                        <th>Rec</th>
+                    </tr>
+                </thead>
+                <tbody id="stock-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SECTOR VIEW -->
+    <div id="sector-view" style="display:none;">
+        <div class="sector-summary-section">
+            <h2 class="section-title">Sector Ranking — Which Sector to Target?</h2>
+            <p class="section-subtitle">Sectors ranked by average stock score. Higher score = stronger fundamentals relative to valuation.</p>
+            <div class="table-container">
+                <table id="sector-summary-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Sector</th>
+                            <th>Sector P/E</th>
+                            <th>Avg Stock P/E</th>
+                            <th>Avg ROE %</th>
+                            <th>Avg D/E</th>
+                            <th>Avg Div %</th>
+                            <th>Avg Score</th>
+                            <th>Buy</th>
+                            <th>Hold</th>
+                            <th>Sell</th>
+                            <th>Verdict</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sector-summary-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="sector-drill-section">
+            <h2 class="section-title">Sector Drill-Down</h2>
+            <div class="sector-selector">
+                <label for="sector-dropdown">Select Sector:</label>
+                <select id="sector-dropdown" onchange="onSectorSelect()">
+                    <option value="">— Choose a sector —</option>
+                </select>
+            </div>
+            <div id="sector-buckets" class="sector-buckets" style="display:none;">
+                <div class="bucket bucket-buy">
+                    <div class="bucket-header"><h3>BUY</h3><span class="bucket-count" id="sector-buy-count">0</span></div>
+                    <div class="bucket-body" id="sector-buy-list"></div>
+                </div>
+                <div class="bucket bucket-hold">
+                    <div class="bucket-header"><h3>HOLD</h3><span class="bucket-count" id="sector-hold-count">0</span></div>
+                    <div class="bucket-body" id="sector-hold-list"></div>
+                </div>
+                <div class="bucket bucket-sell">
+                    <div class="bucket-header"><h3>SELL</h3><span class="bucket-count" id="sector-sell-count">0</span></div>
+                    <div class="bucket-body" id="sector-sell-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="disclaimer">
+        <p><strong>Disclaimer:</strong> This dashboard is for informational/educational purposes only.
+        Recommendations are generated algorithmically based on financial ratios and do NOT constitute financial advice.
+        Always consult a qualified financial advisor before making investment decisions.</p>
+    </div>
+
+    <script src="data-largecap.js"></script>
+    <script src="data-midcap.js"></script>
+    <script src="data-smallcap.js"></script>
+    <script src="stocks-data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
